@@ -1,0 +1,36 @@
+services:
+  shop_db:
+    container_name: shop_db
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    volumes:
+      - shop_db:/var/lib/postgresql/data  # Here we are mounting the shop_db volume to the /var/lib/postgresql/data directory of the container
+    env_file:
+      - .env
+
+  app:
+    container_name: shop_backend  # Here shop_backend is the container name
+    image: app:shop_backend   # Here we are using the app:shop_backend image
+    build: .  # Here we are building the image from the current directory
+    depends_on:
+      - shop_db   # Here we are specifying that the app container depends on the shop_db container
+    volumes:
+      - .:/app  # Here we are mounting the current directory to the /app directory of the container
+    ports:
+        - "8000:8000"
+    command: ["python", "/app/shop/manage.py", "runserver", "0.0.0.0:8000"]   # Here we are running the runserver command of the manage.py file
+    env_file:
+      - .env
+
+  redis:
+    image: redis:latest  # Here we are using the latest version of the redis image
+    container_name: redis_cache  # Here redis_cache is the container name
+    ports:
+      - "6379:6379"  # Here 6379 is the port number of the host machine and 6379 is the port number of the container
+
+volumes:
+  shop_db:  # Here we are creating a volume named shop_db
+
+
+
