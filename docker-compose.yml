@@ -1,36 +1,77 @@
 services:
-  shop_db:
-    container_name: shop_db
-    image: postgres:latest
+  db:
+    container_name: postgres_db      # Here postgres_db is the container name
+    image: postgres:latest           # image name is postgres, using the latest version
     ports:
-      - "5432:5432"
+      - "5432:5432"              # Forward the host's port 5432 to the container's port 5432
     volumes:
-      - shop_db:/var/lib/postgresql/data  # Here we are mounting the shop_db volume to the /var/lib/postgresql/data directory of the container
+      - db:/var/lib/postgresql/data  # Here we are mounting the shop_db volume to the /var/lib/postgresql/data directory of the container
     env_file:
-      - .env
+      - .env                      # Load the environment variables from the .env file
 
   app:
-    container_name: shop_backend  # Here shop_backend is the container name
-    image: app:shop_backend   # Here we are using the app:shop_backend image
-    build: .  # Here we are building the image from the current directory
-    depends_on:
-      - shop_db   # Here we are specifying that the app container depends on the shop_db container
+    container_name: shop_backend     # Here shop_backend is the container name
+    image: app:shop_backend          # Here we are using the app:shop_backend image
+    build: .                         # Here we are building the image from the current directory
     volumes:
-      - .:/app  # Here we are mounting the current directory to the /app directory of the container
+      - .:/app                       # Here we are mounting the current directory to the /app directory of the container
     ports:
         - "8000:8000"
     command: ["python", "/app/shop/manage.py", "runserver", "0.0.0.0:8000"]   # Here we are running the runserver command of the manage.py file
     env_file:
       - .env
+    depends_on:
+      - db                       # Here we are specifying that the app container depends on the shop_db container
 
   redis:
-    image: redis:latest  # Here we are using the latest version of the redis image
-    container_name: redis_cache  # Here redis_cache is the container name
+    image: redis:latest               # Here we are using the latest version of the redis image
+    container_name: redis_cache       # Here redis_cache is the container name
     ports:
-      - "6379:6379"  # Here 6379 is the port number of the host machine and 6379 is the port number of the container
+      - "6379:6379"                   # Here 6379 is the port number of the host machine and 6379 is the port number of the container
+
+  celery_worker:
+    restart: always
+    container_name: celery_worker  # Here celery_worker is the container name
+    build: .                       # Here we are building the image from the current directory
+    working_dir: /app/shop         # Here we are setting the working directory to /app/shop
+    volumes:
+      - .:/app                      # Here we are mounting the current directory to the /app directory of the container
+      - ./media:/app/shop/media     # Here we are mounting the media directory of the host machine to the /app/shop/media directory of the container
+    env_file:
+      - .env
+    command: celery -A shop worker -l info  # Here we are running the worker command of the shop file
+    depends_on:
+      - db         # Here we are specifying that the celery_worker container depends on the shop_db container
+      - redis      # Here we are specifying that the celery_worker container depends on the redis container
+      - app        # Here we are specifying that the celery_worker container depends on the app container
+
+  celery_beat:
+    container_name: celery_beat     # Here celery_beat is the container name
+    build: .                       # Here we are building the image from the current directory
+    working_dir: /app/shop        # Here we are setting the working directory to /app/shop
+    volumes:
+      - .:/app                   # Here we are mounting the current directory to the /app directory of the container
+      - ./media:/app/shop/media  # Here we are mounting the media directory of the host machine to the /app/shop/media directory of the container
+    env_file:
+      - .env
+    command: celery -A shop beat -l info  # Here we are running the beat command of the shop file
+    depends_on:
+      - db             # Here we are specifying that the celery_beat container depends on the shop_db container
+      - redis          # Here we are specifying that the celery_beat container depends on the redis container
+      - app            # Here we are specifying that the celery_beat container depends on the app container
+      - celery_worker  # Here we are specifying that the celery_beat container depends on the celery_worker container
+
+  elastic_search:
+    container_name: elastic_search   # Here elastic_search is the container name
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.3.1  # Here we are using the 8.3.1 version of the elasticsearch image
+    ports:
+      - "9200:9200"                    # Here 9200 is the port number of the host machine and 9200 is the port number of the container
+    environment:
+      - discovery.type=single-node     # Here we are setting the discovery type to single-node
+      - xpack.security.enabled=false    # Here we are disabling the xpack security
+    volumes:
+      - es_data:/usr/share/elasticsearch/data  # Here we are mounting the es_data volume to the /usr/share/elasticsearch/data directory of the container
 
 volumes:
-  shop_db:  # Here we are creating a volume named shop_db
-
-
-
+  db:       # Here we are creating a volume named shop_db
+  es_data:  # Here we are creating a volume named es_data
