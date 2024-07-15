@@ -21,3 +21,5 @@ Elasticsearch is a distributed, RESTful search and analytics engine capable of s
 
 Postgres is a powerful relational database that can handle full-text search. However, Elasticsearch is a better choice for full-text search because it is designed for this purpose. Elasticsearch is a distributed search engine that can handle large amounts of data and is highly scalable. It is also faster than Postgres for full-text search.
 
+
+## Clik the link and follow the blog to check the overview of this project > [Blog Link](https://www.notion.so/Build-a-basic-Django-project-in-Docker-2dbd9e7ac88b49eb9e168c3afa1e070a) 
